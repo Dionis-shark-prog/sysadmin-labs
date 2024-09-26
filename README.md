@@ -1,2 +1,2 @@
 # SysAdmin_labs
-laborator works in third course of univercity
+laborator works in third course of university
