@@ -48,7 +48,7 @@ jobs:
         
         %install
         mkdir -p %{buildroot}/usr/local/bin
-        install -m 755 lab1_source/lab1_script.sh %{buildroot}/usr/local/bin/count_files.sh
+        install -m 755 lab1_source/lab1_script.sh %{buildroot}/usr/local/bin/lab1_script.sh
         
         %files
         /usr/local/bin/lab1_script.sh
