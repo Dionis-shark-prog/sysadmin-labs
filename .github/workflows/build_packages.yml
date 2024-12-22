@@ -1,0 +1,100 @@
+name: Build rpm and deb packages and upload artifact
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install necessary tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y rpm dpkg-dev
+
+    - name: Prepare build environment for rpm
+      run: |
+        mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+        
+    - name: Prepare archive for resources
+      run: |
+        mkdir SysAdmin_labs-1.0
+        cp -r lab1_source SysAdmin_labs-1.0/
+        tar -czvf ~/rpmbuild/SOURCES/SysAdmin_labs-1.0.tar.gz SysAdmin_labs-1.0
+
+    - name: Initialize spec file for rpm
+      run: |
+        cat << EOF > ~/rpmbuild/SPECS/SysAdmin_labs.spec
+        Name: SysAdmin_labs
+        Version: 1.0
+        Release: 1%{?dist}
+        Summary: Script finds the number of files in /etc directory
+        License: MIT
+        Source0: %{name}-%{version}.tar.gz
+        
+        %description
+        Script finds the number of files in /etc directory.
+        
+        %prep
+        %setup -q
+        
+        %build
+        
+        %install
+        mkdir -p %{buildroot}/usr/local/bin
+        install -m 755 lab1_source/lab1_script.sh %{buildroot}/usr/local/bin/count_files.sh
+        
+        %files
+        /usr/local/bin/lab1_script.sh
+        
+        %changelog
+        EOF
+
+    - name: Build rpm
+      run: |
+        rpmbuild -ba ~/rpmbuild/SPECS/SysAdmin_labs.spec
+
+    - name: Prepare environment for deb 
+      run: |
+        mkdir -p ~/SysAdmin_labs_1.0-1/usr/local/bin
+        cp lab1_source/lab1_script.sh ~/SysAdmin_labs_1.0-1/usr/local/bin/
+        mkdir ~/SysAdmin_labs_1.0-1/DEBIAN
+
+    - name: Create control file for deb
+      run: |
+        cat << EOF > ~/SysAdmin_labs_1.0-1/DEBIAN/control
+        Package: SysAdmin_labs
+        Version: 1.0-1
+        Section: base
+        Priority: optional
+        Architecture: all
+        Maintainer: Dionisii <dionisii@example.com>
+        Description: Script to count files in /etc
+         Summary: Script finds the number of files in /etc directory.
+        EOF
+
+    - name: Give permissions to deb package
+      run: |
+        chmod 755 ~/SysAdmin_labs_1.0-1/usr/local/bin/lab1_script.sh
+
+    - name: Build deb
+      run: |
+        dpkg-deb --build ~/SysAdmin_labs_1.0-1
+
+    - name: Upload rpm artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: SysAdmin_labs-rpm
+        path: ~/rpmbuild/RPMS/x86_64/*.rpm
+
+    - name: Upload deb artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: SysAdmin_labs-deb
+        path: ~/SysAdmin_labs_1.0-1.deb
